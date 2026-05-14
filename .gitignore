@@ -1,0 +1,19 @@
+# Terraform state — contains sensitive data (IPs, subscription IDs)
+terraform.tfstate
+terraform.tfstate.backup
+
+# Terraform working directory
+.terraform/
+
+# SSH private key — never commit
+*.pem
+terraform_key.pem
+
+# Generated Ansible inventory — contains live IPs
+inventory
+
+# Docs — will be made public at project completion
+docs/
+
+# macOS
+.DS_Store

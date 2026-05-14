@@ -1,18 +1,32 @@
 provider "aws" {
-  profile = "aditya"
-  region  = "ap-south-1"
+  profile = "svs"
+  region  = "us-east-1"
 }
 
-# Provides EC2 key pair
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 resource "aws_key_pair" "terraformkey" {
   key_name   = "terraform_key"
   public_key = tls_private_key.k8s_ssh.public_key_openssh
 }
 
 resource "aws_vpc" "k8s_vpc" {
-  cidr_block       = "10.0.0.0/16"
-  enable_dns_hostnames=true
-  enable_dns_support =true
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
     Name = "K8S VPC"
@@ -20,10 +34,10 @@ resource "aws_vpc" "k8s_vpc" {
 }
 
 resource "aws_subnet" "public_subnet" {
-  vpc_id     = aws_vpc.k8s_vpc.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id                  = aws_vpc.k8s_vpc.id
+  cidr_block              = "10.1.1.0/24"
   map_public_ip_on_launch = true
-  availability_zone = "ap-south-1a"
+  availability_zone       = "us-east-1a"
 
   tags = {
     Name = "Public Subnet"
@@ -39,43 +53,33 @@ resource "aws_internet_gateway" "k8s_gw" {
 }
 
 resource "aws_route_table" "k8s_route" {
-    vpc_id = aws_vpc.k8s_vpc.id
-    
-    route {
-        cidr_block = "0.0.0.0/0"
-        gateway_id = aws_internet_gateway.k8s_gw.id
-    }
-        
-        tags = {
-            Name = "K8S Route"
-        }
+  vpc_id = aws_vpc.k8s_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.k8s_gw.id
+  }
+
+  tags = {
+    Name = "K8S Route"
+  }
 }
 
 resource "aws_route_table_association" "k8s_asso" {
-    subnet_id = aws_subnet.public_subnet.id
-    route_table_id = aws_route_table.k8s_route.id
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.k8s_route.id
 }
 
-# Create security group
-resource "aws_security_group" "allow_ssh_http" {
-  name        = "Web_SG"
-  description = "Allow SSH and HTTP inbound traffic"
+resource "aws_security_group" "k8s_sg" {
+  name        = "k8s_sg"
+  description = "K8s cluster - allow all (lab)"
   vpc_id      = aws_vpc.k8s_vpc.id
 
   ingress {
-    description      = "Allow All"
-    from_port        = 0
-    to_port          = 0
-    protocol         = -1
-    cidr_blocks      = [ "0.0.0.0/0" ]
-  }
-
-  ingress {
-    description      = "Allow All"
-    from_port        = 0
-    to_port          = 0
-    protocol         = -1
-    cidr_blocks      = [ "0.0.0.0/0" ]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -91,15 +95,15 @@ resource "aws_security_group" "allow_ssh_http" {
   }
 }
 
-resource "aws_instance" "k8s" {
-  ami                   = "ami-010aff33ed5991201"
-  instance_type         = "t2.micro"
-  key_name	            = aws_key_pair.terraformkey.key_name
+resource "aws_instance" "k8s_worker" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.small"
+  key_name                    = aws_key_pair.terraformkey.key_name
   associate_public_ip_address = true
-  subnet_id             = aws_subnet.public_subnet.id
-  vpc_security_group_ids      = [ aws_security_group.allow_ssh_http.id ] 
+  subnet_id                   = aws_subnet.public_subnet.id
+  vpc_security_group_ids      = [aws_security_group.k8s_sg.id]
 
   tags = {
-    Name = "Master Node"
+    Name = "Worker Node 2"
   }
 }

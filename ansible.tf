@@ -1,34 +1,22 @@
-resource "local_file" "ansible_host" {
+resource "local_file" "ansible_inventory" {
+  depends_on = [
+    azurerm_linux_virtual_machine.master,
+    azurerm_linux_virtual_machine.worker,
+    aws_instance.k8s_worker,
+  ]
 
-    depends_on = [
-      aws_instance.k8s
-    ]
-
-    count       = var.n
-    content     = "[Master_Node]\n${aws_instance.k8s.public_ip}\n\n[Worker_Node]\n${join("\n", azurerm_linux_virtual_machine.myk8svm.*.public_ip_address)}"
-    filename    = "inventory"
-  }
-
-resource "null_resource" "null1" {
-
-    depends_on = [
-      local_file.ansible_host
-    ]
-
-  provisioner "local-exec" {
-    command = "sleep 60"
-    }
-
-  provisioner "local-exec" {
-    command = "ansible-playbook playbook.yml"
-    }
-
+  content  = "[master]\n${azurerm_public_ip.master_ip.ip_address}\n\n[worker]\n${join("\n", azurerm_public_ip.worker_ip[*].ip_address)}\n${aws_instance.k8s_worker.public_ip}"
+  filename = "inventory"
 }
 
-output "Master_Node_IP" {
-  value = aws_instance.k8s.public_ip
+output "master_ip" {
+  value = azurerm_public_ip.master_ip.ip_address
 }
 
-output "Worker_Node_IP" {
-  value = join(", ", azurerm_linux_virtual_machine.myk8svm.*.public_ip_address)
+output "azure_worker_ips" {
+  value = join(", ", azurerm_public_ip.worker_ip[*].ip_address)
+}
+
+output "aws_worker_ip" {
+  value = aws_instance.k8s_worker.public_ip
 }
