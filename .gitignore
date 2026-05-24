@@ -1,6 +1,7 @@
 # Terraform state — contains sensitive data (IPs, subscription IDs)
 terraform.tfstate
 terraform.tfstate.backup
+.terraform.tfstate.lock.info
 
 # Terraform working directory
 .terraform/
