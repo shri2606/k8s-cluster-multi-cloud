@@ -1,0 +1,56 @@
+---
+- name: Install Helm
+  shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Add Cilium Helm repo
+  shell: helm repo add cilium https://helm.cilium.io/ && helm repo update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install Cilium
+  shell: |
+    helm upgrade --install cilium cilium/cilium \
+      --version 1.15.6 \
+      --namespace kube-system \
+      --set routingMode=tunnel \
+      --set tunnelProtocol=vxlan \
+      --set encryption.enabled=true \
+      --set encryption.type=wireguard \
+      --set k8sServiceHost={{ inventory_hostname }} \
+      --set k8sServicePort=6443 \
+      --set ipam.mode=kubernetes
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Cilium DaemonSet to be ready
+  shell: kubectl -n kube-system rollout status daemonset/cilium --timeout=180s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: cilium_ready
+  retries: 5
+  delay: 15
+  until: cilium_ready.rc == 0
+  changed_when: false
+
+- name: Install Cilium CLI
+  shell: |
+    CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+    curl -L --fail --remote-name-all \
+      https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz
+    tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
+    rm cilium-linux-amd64.tar.gz
+  args:
+    creates: /usr/local/bin/cilium
+
+- name: Check Cilium status
+  shell: cilium status
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+  register: cilium_status
+  changed_when: false
+
+- name: Print Cilium status
+  debug:
+    msg: "{{ cilium_status.stdout_lines }}"

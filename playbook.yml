@@ -9,6 +9,11 @@
   roles:
     - kubernetes_worker
 
+- name: Install Cilium
+  hosts: master
+  roles:
+    - cilium
+
 - name: Verify cluster
   hosts: master
   tasks:
