@@ -1,5 +1,11 @@
+variable "subscription_id" {
+  type        = string
+  description = "Azure subscription ID (set in terraform.tfvars)"
+}
+
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
 }
 
 variable "n" {
@@ -10,7 +16,7 @@ variable "n" {
 
 resource "azurerm_resource_group" "k8s_rg" {
   name     = "k8sResourceGroup"
-  location = "West US 2"
+  location = "North Central US"
 
   tags = {
     environment = "K8s Resource Group"

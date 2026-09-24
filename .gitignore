@@ -6,6 +6,9 @@ terraform.tfstate.backup
 # Terraform working directory
 .terraform/
 
+# Variable values — contain subscription ID
+*.tfvars
+
 # SSH private key — never commit
 *.pem
 terraform_key.pem
