@@ -1,0 +1,40 @@
+---
+- name: Install k3s server
+  shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -s - server \
+      --flannel-backend=none \
+      --disable-network-policy \
+      --cluster-cidr=10.42.0.0/16 \
+      --service-cidr=10.43.0.0/16 \
+      --tls-san={{ inventory_hostname }} \
+      --node-ip={{ inventory_hostname }} \
+      --node-external-ip={{ inventory_hostname }}
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for k3s to be ready
+  command: k3s kubectl get nodes
+  register: result
+  until: result.rc == 0
+  retries: 20
+  delay: 5
+  changed_when: false
+
+- name: Wait for node token file
+  wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    timeout: 60
+
+- name: Read node token
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_token_raw
+
+- name: Set token fact
+  set_fact:
+    k3s_token: "{{ k3s_token_raw.content | b64decode | trim }}"
+
+- name: Allow ubuntu user to read kubeconfig
+  file:
+    path: /etc/rancher/k3s/k3s.yaml
+    mode: '0644'

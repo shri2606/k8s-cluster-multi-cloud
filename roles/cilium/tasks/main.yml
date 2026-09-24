@@ -12,12 +12,10 @@
 - name: Install Cilium
   shell: |
     helm upgrade --install cilium cilium/cilium \
-      --version 1.15.6 \
+      --version {{ cilium_version }} \
       --namespace kube-system \
       --set routingMode=tunnel \
       --set tunnelProtocol=vxlan \
-      --set encryption.enabled=true \
-      --set encryption.type=wireguard \
       --set k8sServiceHost={{ inventory_hostname }} \
       --set k8sServicePort=6443 \
       --set ipam.mode=kubernetes
@@ -36,9 +34,8 @@
 
 - name: Install Cilium CLI
   shell: |
-    CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
     curl -L --fail --remote-name-all \
-      https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz
+      https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz
     tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
     rm cilium-linux-amd64.tar.gz
   args:

@@ -1,0 +1,20 @@
+---
+- name: Install k3s agent
+  shell: |
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_VERSION={{ k3s_version }} \
+      K3S_URL=https://{{ groups['master'][0] }}:6443 \
+      K3S_TOKEN={{ hostvars[groups['master'][0]]['k3s_token'] }} \
+      sh -s - agent \
+      --node-ip={{ inventory_hostname }} \
+      --node-external-ip={{ inventory_hostname }}
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for k3s-agent to be active
+  systemd:
+    name: k3s-agent
+  register: agent_svc
+  until: agent_svc.status.ActiveState == "active"
+  retries: 20
+  delay: 5
