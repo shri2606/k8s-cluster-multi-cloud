@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/shri2606/k8s-cluster-multi-cloud.git
+    targetRevision: main
+    path: gitops/manifests/sample
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

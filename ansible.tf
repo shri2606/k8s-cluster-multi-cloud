@@ -5,7 +5,7 @@ resource "local_file" "ansible_inventory" {
     aws_instance.k8s_worker,
   ]
 
-  content  = "[master]\n${azurerm_public_ip.master_ip.ip_address}\n\n[worker]\n${join("\n", azurerm_public_ip.worker_ip[*].ip_address)}\n${aws_instance.k8s_worker.public_ip}"
+  content  = "[master]\n${azurerm_public_ip.master_ip.ip_address} cloud=azure\n\n[worker]\n${join("\n", formatlist("%s cloud=azure", azurerm_public_ip.worker_ip[*].ip_address))}\n${aws_instance.k8s_worker.public_ip} cloud=aws"
   filename = "inventory"
 }
 

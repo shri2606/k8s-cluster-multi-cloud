@@ -14,6 +14,11 @@
   roles:
     - cilium
 
+- name: Install Argo CD
+  hosts: master
+  roles:
+    - argocd
+
 - name: Verify cluster
   hosts: master
   tasks:

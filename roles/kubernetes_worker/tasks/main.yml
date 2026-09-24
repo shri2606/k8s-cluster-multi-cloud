@@ -7,7 +7,8 @@
       K3S_TOKEN={{ hostvars[groups['master'][0]]['k3s_token'] }} \
       sh -s - agent \
       --node-ip={{ inventory_hostname }} \
-      --node-external-ip={{ inventory_hostname }}
+      --node-external-ip={{ inventory_hostname }} \
+      --node-label cloud={{ cloud }}
   args:
     creates: /usr/local/bin/k3s
 
